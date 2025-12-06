@@ -32,54 +32,6 @@ def load_image(path, size=None):
         return None
 
 
-# === AYAN: Player Mechanics ===
-class Player:
-    def __init__(self, x, y, width=50, height=30, speed=5, lives=3, image=None):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.speed = speed
-        self.lives = lives
-        self.image = image
-        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.cooldown = 0
-
-    def handle_input(self, keys):
-        if keys[pygame.K_LEFT]:
-            self.x -= self.speed
-        if keys[pygame.K_RIGHT]:
-            self.x += self.speed
-        self.x = max(0, min(self.x, SCREEN_WIDTH - self.width))
-        self.rect.topleft = (self.x, self.y)
-
-    def can_shoot(self):
-        return self.cooldown == 0
-
-    def update(self):
-        if self.cooldown > 0:
-            self.cooldown -= 1
-        self.rect.topleft = (self.x, self.y)
-
-    def shoot(self):
-        self.cooldown = 5
-        bullet_x = self.x + self.width // 2
-        bullet_y = self.y
-        return Bullet(bullet_x, bullet_y, -8, True)
-
-    def draw(self, surface):
-        if isinstance(self.image, pygame.Surface):
-            surface.blit(self.image, self.rect.topleft)
-        else:
-            pygame.draw.rect(surface, (0, 255, 0), self.rect)
-
-    def hit(self):
-        self.lives -= 1
-        self.x = SCREEN_WIDTH // 2 - self.width // 2
-        self.y = SCREEN_HEIGHT - 80
-        self.rect.topleft = (self.x, self.y)
-
-
 # === Shared Bullet Class ===
 class Bullet:
     def __init__(self, x, y, dy, from_player):
@@ -174,70 +126,6 @@ class InvaderManager:
             bullet_y = shooter.y + shooter.rect.height
             return Bullet(bullet_x, bullet_y, 5, False)
         return None
-
-
-# === HADI: Barrier System (Seamless Cell-Based Destruction) ===
-class Barrier:
-    """Barrier looks like a single block, but internally is made of cells that can disappear individually."""
-
-    def __init__(self, x, y, cell_size=6, cols=15, rows=10, color=(0, 255, 0)):
-        self.x = x
-        self.y = y
-        self.cell_size = cell_size
-        self.cols = cols
-        self.rows = rows
-        self.color = color
-        self.cells = [[True for _ in range(cols)] for _ in range(rows)]
-        self.width = cols * cell_size
-        self.height = rows * cell_size
-        self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        self.rect = self.surface.get_rect(topleft=(x, y))
-        self.redraw()
-
-    def redraw(self):
-        """Redraw solid surface without visible gaps, with transparent holes where destroyed."""
-        self.surface.fill((0, 0, 0, 0))
-        for r in range(self.rows):
-            for c in range(self.cols):
-                if self.cells[r][c]:
-                    cell_rect = pygame.Rect(
-                        c * self.cell_size,
-                        r * self.cell_size,
-                        self.cell_size,
-                        self.cell_size,
-                    )
-                    pygame.draw.rect(self.surface, self.color, cell_rect)
-
-    def draw(self, surface):
-        surface.blit(self.surface, (self.x, self.y))
-
-    def hit(self, bullet_rect):
-        """Deactivate only the specific cell that was hit and update."""
-        for r in range(self.rows):
-            for c in range(self.cols):
-                if self.cells[r][c]:
-                    cell_rect = pygame.Rect(
-                        self.x + c * self.cell_size,
-                        self.y + r * self.cell_size,
-                        self.cell_size,
-                        self.cell_size,
-                    )
-                    if bullet_rect.colliderect(cell_rect):
-                        self.cells[r][c] = False
-                        self.redraw()
-                        return True
-        return False
-
-
-def create_barriers():
-    barriers = []
-    gap = SCREEN_WIDTH // 5
-    y = SCREEN_HEIGHT - 180
-    for i in range(1, 5):
-        x = gap * i - 35
-        barriers.append(Barrier(x, y))
-    return barriers
-
 
 # === Sound Handling ===
 def load_sound(filename):
