@@ -173,8 +173,63 @@ class InvaderManager:
             return Bullet(bullet_x, bullet_y, 5, False)
         return None
 
+# === HADI: Barrier System (Seamless Cell-Based Destruction) ===
+class Barrier:
+    """Barrier looks like a single block, but internally is made of cells that can disappear individually."""
+
+    def __init__(self, x, y, cell_size=6, cols=15, rows=10, color=(0, 255, 0)):
+        self.x = x
+        self.y = y
+        self.cell_size = cell_size
+        self.cols = cols
+        self.rows = rows
+        self.color = color
+        self.cells = [[True for _ in range(cols)] for _ in range(rows)]
+        self.width = cols * cell_size
+        self.height = rows * cell_size
+        self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        self.rect = self.surface.get_rect(topleft=(x, y))
+        self.redraw()
+
+    def redraw(self):
+        """Redraw solid surface without visible gaps, with transparent holes where destroyed."""
+        self.surface.fill((0, 0, 0, 0))
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.cells[r][c]:
+                    cell_rect = pygame.Rect(
+                        c * self.cell_size,
+                        r * self.cell_size,
+                        self.cell_size,
+                        self.cell_size,
+                    )
+                    pygame.draw.rect(self.surface, self.color, cell_rect)
+
+    def draw(self, surface):
+        surface.blit(self.surface, (self.x, self.y))
+
+    def hit(self, bullet_rect):
+        """Deactivate only the specific cell that was hit and update."""
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.cells[r][c]:
+                    cell_rect = pygame.Rect(
+                        self.x + c * self.cell_size,
+                        self.y + r * self.cell_size,
+                        self.cell_size,
+                        self.cell_size,
+                    )
+                    if bullet_rect.colliderect(cell_rect):
+                        self.cells[r][c] = False
+                        self.redraw()
+                        return True
+        return False
+
+
+def create_barriers():
+
 # === Sound Handling ===
-def load_sound(filename):
+ def load_sound(filename):
     try:
         return pygame.mixer.Sound(filename)
     except Exception:
