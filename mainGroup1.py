@@ -31,6 +31,52 @@ def load_image(path, size=None):
         print(f"{path} not found, using fallback.")
         return None
 
+# === AYAN: Player Mechanics ===
+class Player:
+    def __init__(self, x, y, width=50, height=30, speed=5, lives=3, image=None):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.speed = speed
+        self.lives = lives
+        self.image = image
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.cooldown = 0
+
+    def handle_input(self, keys):
+        if keys[pygame.K_LEFT]:
+            self.x -= self.speed
+        if keys[pygame.K_RIGHT]:
+            self.x += self.speed
+        self.x = max(0, min(self.x, SCREEN_WIDTH - self.width))
+        self.rect.topleft = (self.x, self.y)
+
+    def can_shoot(self):
+        return self.cooldown == 0
+
+    def update(self):
+        if self.cooldown > 0:
+            self.cooldown -= 1
+        self.rect.topleft = (self.x, self.y)
+
+    def shoot(self):
+        self.cooldown = 5
+        bullet_x = self.x + self.width // 2
+        bullet_y = self.y
+        return Bullet(bullet_x, bullet_y, -8, True)
+
+    def draw(self, surface):
+        if isinstance(self.image, pygame.Surface):
+            surface.blit(self.image, self.rect.topleft)
+        else:
+            pygame.draw.rect(surface, (0, 255, 0), self.rect)
+
+    def hit(self):
+        self.lives -= 1
+        self.x = SCREEN_WIDTH // 2 - self.width // 2
+        self.y = SCREEN_HEIGHT - 80
+        self.rect.topleft = (self.x, self.y)
 
 # === Shared Bullet Class ===
 class Bullet:
